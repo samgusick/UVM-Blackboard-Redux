@@ -4,6 +4,11 @@ var gradePageLinks = [];
 var currentURLindex = 0;
 var cloudArray;
 
+document.getElementById("report_bug").addEventListener('click', function () {
+    chrome.tabs.create({ active: true, url: "https://docs.google.com/forms/d/e/1FAIpQLSfYYhPe83ALiIcTBFPS5Hh5QOiQXjaHliNEIXmKEy0nqCZzmQ/viewform?usp=sf_link" });
+});
+
+
 //   give buttons functionality
 document.getElementById("clear_storage_button").addEventListener('click', function () {
     chrome.storage.sync.clear();
