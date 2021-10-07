@@ -1,0 +1,81 @@
+@font-face {
+  font-family: "TrendaBold";
+  src: url("LatinotypeTrendaBold.woff") format('woff');
+}
+
+* {
+  font-family: "TrendaBold";
+}
+
+#fixedheight {
+  table-layout: fixed;
+}
+
+td {
+  height: 5em;
+}
+table, td{
+   border: 1px solid rgb(214, 214, 214);
+  }
+
+  td{
+    white-space: nowrap;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+.delete-class-button{
+  background-color: #ffffff; /* Green */
+  border: 2px solid #4CAF50;
+  padding: 17px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
+
+.delete-class-button{
+  transition-duration: 0.4s;
+}
+
+.delete-class-button:hover {
+  background-color: #4CAF50; /* Green */
+  border: 2px solid #4CAF50;
+  color: white;
+  padding: 17px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
+
+.weight_block {
+  white-space:normal;
+}
+
+span{
+  white-space: nowrap;
+}
+
+html{
+  background-image: url('logo2.jpeg');
+  background-size: 100%;
+}
+
+.error_message {
+  color: red;
+}
+
+.credit {
+  font-size: small;
+}
+
+li {
+  font-size: 16px;
+}
+
+#warning {
+  color: red;
+}

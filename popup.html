@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body id="body">
+
+
+    <h1>Blackboard Grades UVM</h1>
+    <h1 class="credit">by Sam Gusick & Evan Siegel</h1>
+
+    <!-- <span>
+        <h2>How to Use</h2>
+        <ol>
+            <li>Login to Blackboard</li>
+            <li>Click the Extension Icon</li>
+            <li>Replace the default weight categories with the ones in your syllabus (they will save automatically)</li>
+            <li>enjoy!</li>
+        </ol>
+    </span> -->
+    <span>
+        <button id="report_bug">Report A Bug</button>
+    </span>
+
+    <h1 id="warning"></h1>
+
+    <span>
+        <span>
+            <span id="loadingText">
+
+            </span>
+            <div style="    
+        background-color: #f1f1f1!important;
+        width: 90%;
+        margin-top: 50px;
+        margin-bottom: 50px;
+        margin-left: auto;
+        margin-right: auto;">
+                <div id="progress"
+                    style="height:36px;width:0%;background-color:#4CAF50!important;text-align:center!important;font-size:20px;">
+                    0%
+                </div>
+            </div>
+        </span>
+    </span>
+
+    <table>
+        <tbody id="grade_table_body">
+            <tr>
+                <td>Class Name</td>
+                <td>Grade</td>
+        </tbody>
+    </table>
+
+    <span>
+        <button id="clear_storage_button" class="delete-class-button" type="button">Delete All/Reset</button>
+
+    </span>
+    <span>
+        <button id="refresh_button" class="delete-class-button" type="button">Refresh</button>
+    </span>
+
+
+
+</body>
+
+<script src="popup2.js"></script>
+
+</html>
