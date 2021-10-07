@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Blackboard Grades UVM",
-    "version": "1.0.0.2",
+    "version": "1.0.0.3",
     "icons" : { "1169": "icon.png" },
     "author" : "Sam Gusick and Evan Siegel",
     "description": "used to view calculated UVM Blackboard Grades",
