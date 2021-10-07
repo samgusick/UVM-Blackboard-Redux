@@ -3,11 +3,33 @@ var newClasses = [];
 var gradePageLinks = [];
 var currentURLindex = 0;
 var cloudArray;
+var weightsHidden;
+
 
 document.getElementById("report_bug").addEventListener('click', function () {
     chrome.tabs.create({ active: true, url: "https://docs.google.com/forms/d/e/1FAIpQLSfYYhPe83ALiIcTBFPS5Hh5QOiQXjaHliNEIXmKEy0nqCZzmQ/viewform?usp=sf_link" });
 });
 
+document.getElementById("show_hide_weights").addEventListener('click', function () {
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    for (let index = 0; index < weightsBlocks.length; index++) {
+        if (weightsBlocks[index].getAttribute("hidden") == null) {
+            weightsBlocks[index].setAttribute("hidden", "true");
+            chrome.storage.sync.set({ 'weightsHidden': "true" });
+        } else {
+            weightsBlocks[index].removeAttribute("hidden");
+            chrome.storage.sync.set({ 'weightsHidden': "false" });
+        }
+        
+        
+    }
+    chrome.storage.sync.get(function (result) { 
+        console.log(result);
+    });
+
+
+});
 
 //   give buttons functionality
 document.getElementById("clear_storage_button").addEventListener('click', function () {
@@ -70,9 +92,7 @@ chrome.runtime.onMessage.addListener(function (msgFromContent, sender) {
         currentURLindex++;
 
         var completion = 100 * (currentURLindex / (gradePageLinks.length - 1)).toFixed(2);
-        console.log(completion);
         var styling = "height:36px;width:" + completion + "%;background-color:#4CAF50!important;text-align:center!important;font-size:20px;";
-        console.log(styling);
         document.getElementById("progress").setAttribute("style", styling);
         document.getElementById("progress").innerText = completion + "%";
         if (currentURLindex < gradePageLinks.length - 1) {
@@ -184,6 +204,9 @@ function create_html(classData) {
 
     var category_column = document.createElement("th");
     category_column.setAttribute("class", "weight_block");
+
+
+
     name_column.appendChild(name_column_text);
 
     number_grade_column.appendChild(number_grade_column_text);
@@ -293,6 +316,30 @@ function create_html(classData) {
     table_body.setAttribute("id", "grade_table_body");
 
     document.getElementById("progress").setAttribute("hidden", true);
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    chrome.storage.sync.get(function (result) {
+        console.log(result.weightsHidden);
+        if (result.weightsHidden == undefined) {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+                weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+            }
+        } else {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+            
+                if (result.weightsHidden == "true") {
+                    weightsBlocks[index].setAttribute("hidden", "true");
+                    chrome.storage.sync.set({ 'weightsHidden': "true" });
+                } else {
+                    weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+                }
+                
+            }
+        }
+    });
+
 
 
 }
@@ -370,4 +417,3 @@ function get_letter_grade(number_grade) {
 
     return letter_grade;
 }
-

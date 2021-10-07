@@ -130,7 +130,6 @@ function getGradeObject(grade_string) {
     }
 
     else if (isNaN(grade_string)) {
-
         switch (grade_string) {
             case "A+":
                 total_points = 100;
@@ -198,6 +197,7 @@ function getGradeObject(grade_string) {
                 break;
 
             default:
+                total_total = 0;
                 break;
 
 
@@ -205,7 +205,11 @@ function getGradeObject(grade_string) {
         }
     }
 
-    return (total_points / total_total);
+    if (total_total != 0) {
+        return (total_points / total_total);
+    }   else {
+        return -1;
+    }
 }
 
 function scrapeGrades() {
@@ -234,7 +238,8 @@ function scrapeGrades() {
             // get the raw grade
             var raw_grade = getGradeObject(rawGrade.textContent.replace(/\s/g, ''));
 
-            if (!isNaN(raw_grade)) {
+    
+            if (!isNaN(raw_grade) && raw_grade != -1) {
                 console.log(raw_grade);
 
                 try {
@@ -266,7 +271,7 @@ function scrapeGrades() {
 
                 for (let index = 0; index < classWeightCats.length; index++) {
                     if (classWeightCats[index] == raw_grade_category) {
-                        console.log(classGradesNums[index]);
+                        //console.log(classGradesNums[index]);
                         classGradesNums[index].value = classGradesNums[index].value + raw_grade;
                         classGradesNums[index].size = classGradesNums[index].size + 1;
 
