@@ -143,7 +143,9 @@ function getCloudWeights() {
                 for (let classWeightIndex = 0; classWeightIndex < newClasses[classIndex].cats.length; classWeightIndex++) {
                     for (let index = 0; index < cloudArray.length; index++) {
                         if (cloudArray[index].name == newClasses[classIndex].name) {
+                            // if the scraped and cloud classes have the same name....
                             if (!cloudArray[index].cats.includes(newClasses[classIndex].cats[classWeightIndex])) {
+                                // if the cloud class doesn't have the category, add it
                                 cloudArray[index].cats.push(newClasses[classIndex].cats[classWeightIndex]);
                                 cloudArray[index].weights.push(newClasses[classIndex].weights[classWeightIndex]);
                             }
