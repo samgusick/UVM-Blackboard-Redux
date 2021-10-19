@@ -3,6 +3,8 @@ var newClasses = [];
 var gradePageLinks = [];
 var currentURLindex = 0;
 var cloudArray;
+var weightsHidden;
+
 
 // chrome.storage.sync.get(function (result) {
 //     cloudArray = result.classes;
@@ -20,6 +22,26 @@ document.getElementById("report_bug").addEventListener('click', function () {
     chrome.tabs.create({ active: true, url: "https://docs.google.com/forms/d/e/1FAIpQLSfYYhPe83ALiIcTBFPS5Hh5QOiQXjaHliNEIXmKEy0nqCZzmQ/viewform?usp=sf_link" });
 });
 
+document.getElementById("show_hide_weights").addEventListener('click', function () {
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    for (let index = 0; index < weightsBlocks.length; index++) {
+        if (weightsBlocks[index].getAttribute("hidden") == null) {
+            weightsBlocks[index].setAttribute("hidden", "true");
+            chrome.storage.sync.set({ 'weightsHidden': "true" });
+        } else {
+            weightsBlocks[index].removeAttribute("hidden");
+            chrome.storage.sync.set({ 'weightsHidden': "false" });
+        }
+        
+        
+    }
+    chrome.storage.sync.get(function (result) { 
+        console.log(result);
+    });
+
+
+});
 
 //   give buttons functionality
 document.getElementById("clear_storage_button").addEventListener('click', function () {
@@ -304,6 +326,29 @@ function create_html(classData) {
     table_body.setAttribute("id", "grade_table_body");
 
     document.getElementById("progress").setAttribute("hidden", true);
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    chrome.storage.sync.get(function (result) {
+        console.log(result.weightsHidden);
+        if (result.weightsHidden == undefined) {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+                weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+            }
+        } else {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+            
+                if (result.weightsHidden == "true") {
+                    weightsBlocks[index].setAttribute("hidden", "true");
+                    chrome.storage.sync.set({ 'weightsHidden': "true" });
+                } else {
+                    weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+                }
+                
+            }
+        }
+    });
 
 
 }
