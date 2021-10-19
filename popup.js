@@ -87,7 +87,8 @@ chrome.runtime.onMessage.addListener(function (web_content) {
 
         if (isLoggedIn)
         {
-            console.log("Made it!");
+            var error_message = document.createElement("h1");
+            error_message.appendChild(document.createTextNode("Please Wait..."));
             chrome.tabs.create({active: true, url: "https://bb.uvm.edu/"});
             isLoggedIn = false;
         }

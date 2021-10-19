@@ -289,7 +289,7 @@ function scrapeGrades() {
     var final_raw_grades = [];
     classGradesNums.forEach(element => {
         var grade = element.value / element.size;
-        //console.log(element.value + " ," + element.size)
+        console.log(element.value + " ," + element.size)
         final_raw_grades.push(grade);
     });
     return {
