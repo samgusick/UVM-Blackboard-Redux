@@ -1,6 +1,6 @@
 @font-face {
   font-family: "TrendaBold";
-  src: url("LatinotypeTrendaBold.woff") format('woff');
+  src: url("/font/LatinotypeTrendaBold.woff") format('woff');
 }
 
 * {
@@ -60,7 +60,7 @@ span{
 }
 
 html{
-  background-image: url('logo2.jpeg');
+  background-image: url('/images/Logo2.jpeg');
   background-size: 100%;
 }
 

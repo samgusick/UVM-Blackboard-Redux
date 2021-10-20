@@ -1,189 +1,202 @@
-// the array that stores all of the classes being used by the extension
-var classes = [];
-var tabs_open = 0;
-var isLoggedIn = true;
 
-chrome.storage.sync.get(['stored_classes'],
-    function (stored_array_as_object) {
-        if (stored_array_as_object.stored_classes == undefined || stored_array_as_object.stored_classes.length == 0) {
-            loadAllClasses();
+var newClasses = [];
+var gradePageLinks = [];
+var currentURLindex = 0;
+var cloudArray;
+var weightsHidden;
+
+
+// chrome.storage.sync.get(function (result) {
+//     cloudArray = result.classes;
+    
+//     cloudArray[2].cats.pop();
+//     while (cloudArray[2].weights.length > 2) {
+//         cloudArray[2].weights.pop();
+//     }
+//     console.log(cloudArray);
+//     chrome.storage.sync.set({ 'classes': cloudArray });
+
+// });
+
+document.getElementById("report_bug").addEventListener('click', function () {
+    chrome.tabs.create({ active: true, url: "https://docs.google.com/forms/d/e/1FAIpQLSfYYhPe83ALiIcTBFPS5Hh5QOiQXjaHliNEIXmKEy0nqCZzmQ/viewform?usp=sf_link" });
+});
+
+document.getElementById("show_hide_weights").addEventListener('click', function () {
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    for (let index = 0; index < weightsBlocks.length; index++) {
+        if (weightsBlocks[index].getAttribute("hidden") == null) {
+            weightsBlocks[index].setAttribute("hidden", "true");
+            chrome.storage.sync.set({ 'weightsHidden': "true" });
+        } else {
+            weightsBlocks[index].removeAttribute("hidden");
+            chrome.storage.sync.set({ 'weightsHidden': "false" });
         }
-        else {
-            load();
-        }
+        
+        
+    }
+    chrome.storage.sync.get(function (result) { 
+        console.log(result);
     });
 
 
-// listens for any request to get grades, finds them and sends them back to the extension
-chrome.runtime.onMessage.addListener(function (web_content) {
-    
-    // only do this if the message fron the content script is "content", which means it's a class 
-    if (web_content.msg == "content") {
-        // validate if the class is in the stored classes or not
-        var inClass = false;
+});
 
-        for (let index = 0; index < classes.length; index++) {
-            if (web_content.url == classes[index].url) {
-                inClass = true;
-            }
+//   give buttons functionality
+document.getElementById("clear_storage_button").addEventListener('click', function () {
+    chrome.storage.sync.clear();
+    newClasses = [];
+    var table_body;
+    table_body = document.getElementById("grade_table_body")
+    table_body.innerHTML = '';
+});
 
-        }
-
-        // if the class is already in the array
-        if (inClass) {
-            var existing_class_index;
-            for (let index = 0; index < classes.length; index++) {
-                if (classes[index].url.replace(/\s/g, '') == web_content.url.replace(/\s/g, '')) {
-                    existing_class_index = index;
-                }
-            }
-            // replace the object at the specified index with the new data in this class
-            classes[existing_class_index] = web_content;
-        }
-
-        // if the class is not in the array
-        else if (!inClass) {
-            // push the class to the stored classes array
-            classes.push(web_content);
-            // refresh the data
-        }
+document.getElementById("refresh_button").addEventListener('click', function () {
+    var table_body;
+    table_body = document.getElementById("grade_table_body")
+    table_body.innerHTML = '';
+    newClasses = [];
+    gradePageLinks = [];
+    cloudArray = undefined;
+    var progressBar = document.getElementById("progress");
+    progressBar.setAttribute("hidden", false);
+    progressBar.setAttribute("style", "height:36px;width:0%;background-color:#4CAF50!important;text-align:center!important;font-size:20px;");
+    progressBar.innerText = "0%";
+    load();
+});
 
 
-        chrome.tabs.remove(web_content.tab_id);
-        save();
-        create_html(classes);
+load();
+// go to the tab with the class links
+function load() {
 
+    var table_body;
+    table_body = document.getElementById("grade_table_body")
+    table_body.innerHTML = '';
+    chrome.tabs.create({ active: false, url: "https://bb.uvm.edu/" });
+}
 
+chrome.runtime.onMessage.addListener(function (msgFromContent, sender) {
+    if (msgFromContent.msg == "notLoggedIn") {
+        chrome.tabs.remove(sender.tab.id);
+        document.getElementById("warning").innerText = "login to Blackboard First!";
+    }
+    // #1 Get the list of class links 
+    else if (msgFromContent.msg == "urlList") {
+        chrome.tabs.remove(sender.tab.id);
+        // store the grade page links
+        gradePageLinks = msgFromContent.urlList;
+
+        //console.log("recieved urls");
+        // add a special element to indicate the end
+        gradePageLinks.push("*");
+        //console.log(gradePageLinks);
+
+        chrome.tabs.create({ active: false, url: gradePageLinks[currentURLindex] });
     }
 
-    else if (web_content.msg == "sendAll") {
-        var url_array = web_content.URLlist;
-        url_array.forEach(url => {
-            var startIndex = url.indexOf("_");
-            startIndex++;
-            var letter = "";
-            var class_id = "";
-            while (letter != "_") {
-                letter = url[startIndex];
-                class_id += letter;
-                startIndex++;
-                letter = url[startIndex];
-            }
+    else if (msgFromContent.msg == "gradeData") {
+        chrome.tabs.remove(sender.tab.id);
+        classTemp = translateGradeData(msgFromContent.categories, msgFromContent.unweighted_grades, msgFromContent.name)
+        // add the new class data
+        newClasses.push(classTemp);
+        currentURLindex++;
 
-            var finalURL = "https://bb.uvm.edu/webapps/bb-mygrades-bb_bb60/myGrades?course_id=" + class_id + "_1&stream_name=mygrades&is_stream=false";
-            add_new_class(finalURL);
-        });
-
-        chrome.tabs.remove(web_content.tab_id);
-
-    }
-
-    else if (web_content.msg == "notLoggedIn") {
-        
-        var error_message = document.createElement("h1");
-        error_message.setAttribute("class", "error_message");
-        error_message.appendChild(document.createTextNode("Login to BB First!"));
-        document.getElementById("grade_table_body").appendChild(error_message);
-
-        if (isLoggedIn)
-        {
-            var error_message = document.createElement("h1");
-            error_message.appendChild(document.createTextNode("Please Wait..."));
-            chrome.tabs.create({active: true, url: "https://bb.uvm.edu/"});
-            isLoggedIn = false;
+        var completion = 100 * (currentURLindex / (gradePageLinks.length - 1)).toFixed(2);
+        var styling = "height:36px;width:" + completion + "%;background-color:#4CAF50!important;text-align:center!important;font-size:20px;";
+        document.getElementById("progress").setAttribute("style", styling);
+        document.getElementById("progress").innerText = completion + "%";
+        if (currentURLindex < gradePageLinks.length - 1) {
+            chrome.tabs.create({ active: false, url: gradePageLinks[currentURLindex] });
         }
-        chrome.tabs.remove(web_content.id);
-        return;
-    }
 
-
-    else if (web_content.msg == "nonExistentClass") {
-        chrome.tabs.remove(web_content.id);
+        if (newClasses.length == gradePageLinks.length - 1) {
+            getCloudWeights();
+            currentURLindex = 0;
+        }
     }
 });
 
-// adds a new class by URL
-function add_new_class(url_to_add) {
-    chrome.tabs.create({ active: false, url: url_to_add }, function (tab) {
-        chrome.tabs.executeScript(tab.id, { file: "content.js" }, function () {
-            tabs_open++;
-            chrome.tabs.sendMessage(tab.id, { weight: [], tab_id: tab.id, url: url_to_add, msg: "get" });
-        });
-    });
-}
+function getCloudWeights() {
 
-// saves the classes to chrome storage
-function save() {
-    // store the classes array
+    chrome.storage.sync.get(function (result) {
+        cloudArray = result.classes;
 
+        if (cloudArray == undefined) {
+            chrome.storage.sync.clear();
+            //console.log("cloud array is undefined, creating a new array...");
+            cloudArray = newClasses;
+            chrome.storage.sync.set({ 'classes': cloudArray });
+            create_html(cloudArray);
+        } else {
+            //console.log("cloud array found, filling in stored weights...");
+            // go through all of the scraped classes, 
 
-    chrome.storage.sync.set({ stored_classes: classes });
-}
+            for (let classIndex = 0; classIndex < newClasses.length; classIndex++) {
+                var cloudContainsClass = false;
+                for (let cloudIndex = 0; cloudIndex < cloudArray.length; cloudIndex++) {
 
-// loads the classes from chrome storage
-function load() {
+                    if (newClasses[classIndex].name == cloudArray[classIndex].name) {
+                        cloudContainsClass = true;
 
-    // get the classes array
-    chrome.storage.sync.get(['stored_classes'],
-        function (stored_array_as_object) {
-            //  get the classes from the stored_classes, old info will be replaced
-            classes = [];
-            classes = stored_array_as_object.stored_classes;
-            // go through all of the stored classes, update their info
-
-            var last_index_seen;
-            var hasDuplicates = false;
-            for (let index = 0; index < classes.length; index++) {
-                var name_count = 0;
-                for (let sub_index = 0; sub_index < classes.length; sub_index++) {
-                    if (classes[index].name == classes[sub_index].name) {
-                        name_count++;
-                        last_index_seen = sub_index;
-                        if (name_count > 1) {
-                            hasDuplicates = true;
-                        }
                     }
                 }
+                if (!cloudContainsClass) {
+                    //if there are any ones that are not in the cloud array, push them
+                    cloudArray.push(newClasses[classIndex])
+                }
             }
-            if (hasDuplicates) {
-                classes.splice(last_index_seen, 1);
+
+
+            // go through all of the cloud classses and the 
+
+            for (let classIndex = 0; classIndex < newClasses.length; classIndex++) {
+                for (let classWeightIndex = 0; classWeightIndex < newClasses[classIndex].cats.length; classWeightIndex++) {
+                    for (let index = 0; index < cloudArray.length; index++) {
+                        if (cloudArray[index].name == newClasses[classIndex].name) {
+                            if (!cloudArray[index].cats.includes(newClasses[classIndex].cats[classWeightIndex])) {
+                                cloudArray[index].cats.push(newClasses[classIndex].cats[classWeightIndex]);
+                                cloudArray[index].weights.push(newClasses[classIndex].weights[classWeightIndex]);
+                                cloudArray[index].grades.push(newClasses[classIndex].grades[classWeightIndex])
+                            }
+                        }
+                    }
+
+                }
+
             }
-
-            classes = classes.filter(function (el) {
-                return el != null;
-            });
-
-            for (let index = 0; index < classes.length; index++) {
-                // create a tab with the given classes url
-                chrome.tabs.create({ active: false, url: classes[index].url }, function (tab) {
-                    // send the message to get the info sent back to popup.js
-
-                    chrome.tabs.executeScript(tab.id, { file: "content.js" }, function () {
-                        //tabs_open++;
-                        chrome.tabs.sendMessage(tab.id, { weight: classes[index].weights, tab_id: tab.id, url: stored_array_as_object.stored_classes[index].url, msg: "get" });
-                    });
-                });
-            }
-        });
-}
-
-
-function loadAllClasses() {
-    chrome.tabs.create({ active: false, url: "https://bb.uvm.edu/" }, function (tab) {
-        // send the message to get the info sent back to popup.js
-
-        var warning_text = document.getElementsByTagName("body")[0].appendChild(document.createElement("h1"));
-        warning_text.style.fontSize = "large";
-        warning_text.appendChild(document.createTextNode("First time loading classes you may need to hit refresh"));
-        chrome.tabs.executeScript(tab.id, { file: "content.js" }, function () {
-            //tabs_open++;
-
-            chrome.tabs.sendMessage(tab.id, { msg: "getAll", tab_id: tab.id });
-        });
+            //console.log(cloudArray);
+            chrome.storage.sync.set({ 'classes': cloudArray });
+            create_html(cloudArray);
+        }
     });
 }
 
-function create_html(classes_array) {
+function translateGradeData(cats, grades, name) {
+    var weightsArray = [];
+
+    for (let index = 0; index < cats.length; index++) {
+        weightsArray.push(0);
+
+    }
+
+    for (let index = 0; index < cats.length; index++) {
+        weightsArray[index] = (1 / cats.length).toFixed(2);
+
+    }
+
+    var classData = {
+        name: name,
+        cats: cats,
+        grades: grades,
+        weights: weightsArray
+    }
+
+    return classData;
+}
+
+function create_html(classData) {
 
     // clear the table
     var table_body;
@@ -195,10 +208,8 @@ function create_html(classes_array) {
     var number_grade_column_text = document.createElement("h1").appendChild(document.createTextNode("Number Grade"));
     var letter_grade_column_text = document.createElement("h1").appendChild(document.createTextNode("Letter Grade"));
     var name_column_text = document.createElement("h1").appendChild(document.createTextNode("Class Name"));
-    var delete_column_text = document.createElement("h1").appendChild(document.createTextNode("Delete Class"));
-    var category_column_text = document.createElement("h1").appendChild(document.createTextNode("Weights (Find in Class Syllabus)"));
+    var category_column_text = document.createElement("h1").appendChild(document.createTextNode("Weights"));
     var header_row = document.createElement("tr");
-    var delete_column = document.createElement("th");
     var name_column = document.createElement("th");
 
     var number_grade_column = document.createElement("th");
@@ -211,39 +222,65 @@ function create_html(classes_array) {
     number_grade_column.appendChild(number_grade_column_text);
     letter_grade_column.appendChild(letter_grade_column_text);
 
-    delete_column.appendChild(delete_column_text);
+
     category_column.appendChild(category_column_text);
 
-    header_row.appendChild(delete_column);
+
     header_row.appendChild(name_column);
     header_row.appendChild(number_grade_column);
     header_row.appendChild(letter_grade_column);
     header_row.appendChild(category_column);
     table_body.appendChild(header_row);
 
-    for (let index = 0; index < classes_array.length; index++) {
+    for (let index = 0; index < classData.length; index++) {
         var new_row = document.createElement("tr");
-        new_row.setAttribute("id", classes_array[index].name);
-
-        var new_delete = document.createElement("td");
+        new_row.setAttribute("id", classData[index].name);
         var new_name = document.createElement("td");
         var new_number_grade = document.createElement("td");
         var new_letter_grade = document.createElement("td");
         var new_category = document.createElement("td");
-        var deleteButton = document.createElement("button");
 
         // setup the categories
         new_category.appendChild(document.createElement("table").appendChild(document.createElement("tbody")));
 
-        classes_array[index].weights.forEach(element => {
-
-            var category_text = document.createElement("td").appendChild(document.createTextNode(element.category + " %"));
+        for (let index2 = 0; index2 < classData[index].weights.length; index2++) {
+            var category_text = document.createElement("td").appendChild(document.createTextNode(classData[index].cats[index2] + " %"));
             var category_value = document.createElement("input");
             category_value.setAttribute("type", "number");
-            category_value.setAttribute("value", element.value * 100);
-            category_value.setAttribute("id", element.category + classes_array[index].name);
+            category_value.setAttribute("value", classData[index].weights[index2] * 100);
+            category_value.setAttribute("id", classData[index].name + classData[index].cats[index2]);
             category_value.addEventListener("change", function (new_value) {
-                category_value.setAttribute("value", document.getElementById(element.category + classes_array[index].name).value);
+
+                var value = document.getElementById(classData[index].name + classData[index].cats[index2]).value;
+                var name = newClasses[index].name
+                var category = newClasses[index].cats[index2];
+                value = (value / 100).toFixed(2);
+
+                // console.log(name);
+                // console.log(category);
+
+                chrome.storage.sync.get(function (result) {
+                    cloudArray = result.classes;
+                    for (let index = 0; index < cloudArray.length; index++) {
+                        for (let index2 = 0; index2 < cloudArray[index].weights.length; index2++) {
+                            if (cloudArray[index].name == name && cloudArray[index].cats[index2] == category) {
+                                //console.log("matching category found");
+                                cloudArray[index].weights[index2] = value;
+                            }
+                        }
+                    }
+
+                    chrome.storage.sync.set({ 'classes': cloudArray });
+
+                });
+
+                chrome.storage.sync.get(function (result) {
+                    //console.log(result.classes);
+                });
+
+
+                //console.log(getObj);
+                //category_value.setAttribute("value", document.getElementById(element.category + classData[index].name).getAttribute("value"));
             });
 
 
@@ -252,30 +289,20 @@ function create_html(classes_array) {
             cat_row.appendChild(document.createElement("td").appendChild(category_value));
 
             new_category.appendChild(cat_row);
-
-        });
+        }
 
         new_category.setAttribute("class", "weight_block");
         //new_category.setAttribute("hidden", false);
 
-        // setup the delete button
-        deleteButton.setAttribute("id", classes_array[index].name + "button");
-        deleteButton.setAttribute("class", "delete-class-button");
-        deleteButton.appendChild(document.createTextNode("Delete"));
-        deleteButton.addEventListener('click', function () {
-            document.getElementById(classes_array[index].name).innerHTML = '';
-            classes.splice(index, 1);
-            classes = classes.filter(function (el) {
-                return el != null;
-            });
-            save();
-        });
 
-        new_delete.appendChild(deleteButton);
+        new_name.appendChild(document.createTextNode(classData[index].name));
 
-        new_name.appendChild(document.createTextNode(classes_array[index].name));
+        real_grade = 0;
 
-        real_grade = (100 * parseFloat(classes_array[index].grade)).toFixed(2);
+        for (let index2 = 0; index2 < classData[index].weights.length; index2++) {
+            real_grade += 100 * classData[index].weights[index2] * classData[index].grades[index2];
+        }
+        real_grade = real_grade.toFixed(2);
 
 
         if (real_grade == "NaN") {
@@ -288,7 +315,6 @@ function create_html(classes_array) {
         new_letter_grade.appendChild(document.createTextNode(get_letter_grade(real_grade)));
 
 
-        new_row.appendChild(new_delete);
         new_row.appendChild(new_name);
         new_row.appendChild(new_number_grade);
         new_row.appendChild(new_letter_grade);
@@ -299,7 +325,34 @@ function create_html(classes_array) {
 
     table_body.setAttribute("id", "grade_table_body");
 
+    document.getElementById("progress").setAttribute("hidden", true);
+    var weightsBlocks = document.getElementsByClassName("weight_block");
+
+    chrome.storage.sync.get(function (result) {
+        console.log(result.weightsHidden);
+        if (result.weightsHidden == undefined) {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+                weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+            }
+        } else {
+            for (let index = 0; index < weightsBlocks.length; index++) {
+            
+                if (result.weightsHidden == "true") {
+                    weightsBlocks[index].setAttribute("hidden", "true");
+                    chrome.storage.sync.set({ 'weightsHidden': "true" });
+                } else {
+                    weightsBlocks[index].removeAttribute("hidden");
+                    chrome.storage.sync.set({ 'weightsHidden': "false" });
+                }
+                
+            }
+        }
+    });
+
+
 }
+
 
 
 function get_letter_grade(number_grade) {
@@ -374,34 +427,3 @@ function get_letter_grade(number_grade) {
     return letter_grade;
 }
 
-//give buttons functionality
-document.getElementById("clear_storage_button").addEventListener('click', function () {
-    chrome.storage.sync.clear();
-    chrome.storage.local.clear();
-    classes = [];
-    var table_body;
-    table_body = document.getElementById("grade_table_body")
-    table_body.innerHTML = '';
-    save();
-});
-
-document.getElementById("save_weights").addEventListener('click', function () {
-    for (let index = 0; index < classes.length; index++) {
-        for (let index2 = 0; index2 < classes[index].weights.length; index2++) {
-            var new_weight = document.getElementById(classes[index].weights[index2].category + classes[index].name).getAttribute("value");
-            classes[index].weights[index2].value = parseFloat(new_weight) / 100;
-        }
-
-    }
-
-    save();
-    load();
-});
-
-document.getElementById("refresh_button").addEventListener('click', function () {
-    load();
-});
-
-document.getElementById("report_bug").addEventListener('click', function () {
-    chrome.tabs.create({ active: true, url: "https://docs.google.com/forms/d/e/1FAIpQLSfYYhPe83ALiIcTBFPS5Hh5QOiQXjaHliNEIXmKEy0nqCZzmQ/viewform?usp=sf_link" });
-});

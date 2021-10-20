@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "Blackboard Grades UVM",
     "version": "1.0.0.4",
-    "icons" : { "1169": "icon.png" },
+    "icons" : { "1169": "images/icon.png" },
     "author" : "Sam Gusick and Evan Siegel",
     "description": "used to view calculated UVM Blackboard Grades",
     "permissions" : [
@@ -13,7 +13,7 @@
     "content_scripts": [
         {
             "matches": ["*://bb.uvm.edu/*"],
-            "js": ["content2.js"]
+            "js": ["content.js"]
         }
     ],
     "browser_action": {
