@@ -37,7 +37,7 @@ document.getElementById("show_hide_weights").addEventListener('click', function 
         
     }
     chrome.storage.sync.get(function (result) { 
-        console.log(result);
+        //console.log(result);
     });
 
 
@@ -122,7 +122,7 @@ function getCloudWeights() {
 
     chrome.storage.sync.get(function (result) {
         cloudArray = result.classes;
-
+        console.log(cloudArray);
         if (cloudArray == undefined) {
             chrome.storage.sync.clear();
             //console.log("cloud array is undefined, creating a new array...");
@@ -249,6 +249,9 @@ function create_html(classData) {
             category_value.setAttribute("type", "number");
             category_value.setAttribute("value", classData[index].weights[index2] * 100);
             category_value.setAttribute("id", classData[index].name + classData[index].cats[index2]);
+            if (category_value.getAttribute("id").includes("remainder")) {
+                category_value.disabled = true;
+            }
             category_value.addEventListener("change", function (new_value) {
 
                 var value = document.getElementById(classData[index].name + classData[index].cats[index2]).value;
@@ -269,6 +272,47 @@ function create_html(classData) {
                             }
                         }
                     }
+                    
+                   
+
+                    for (let index = 0; index < cloudArray.length; index++) {
+                        var weightTotal = 0;
+                        for (let index2 = 0; index2 < cloudArray[index].weights.length; index2++) {
+                            if ( cloudArray[index].cats[index2] != "remainder") {
+                                weightTotal += parseFloat(cloudArray[index].weights[index2]);
+                            }
+                        }
+                        console.log(weightTotal);
+
+                        if ((1 - weightTotal) > .05) {
+                            console.log(cloudArray[index].name);
+                            
+                            if (cloudArray[index].cats.includes("remainder")) {
+                                var numString = (1-weightTotal).toFixed(2).toString();
+                                var remainderIndex = cloudArray[index].cats.indexOf("remainder");
+                                cloudArray[index].weights[remainderIndex] = numString;
+                            } else {
+                                var numString = (1-weightTotal).toFixed(2).toString();
+                                cloudArray[index].weights.push(numString);
+                                cloudArray[index].cats.push("remainder");
+                                cloudArray[index].grades.push(1);
+                            }
+                        } else {
+                            if (cloudArray[index].cats.includes("remainder")) {
+                                var remainderIndex = cloudArray[index].cats.indexOf("remainder");
+                                cloudArray[index].cats.splice(remainderIndex, 1);
+                                cloudArray[index].weights.splice(remainderIndex, 1);
+                                cloudArray[index].grades.splice(remainderIndex, 1);
+                            }
+                        }
+                    }
+
+                    //console.log(cloudArray);
+                    // add values of categories up, all except the placehold
+
+                    // if the total is < 95, make a category that accounts for the remainder
+
+                    // if the total is >= 95, remove a remaineder category if it's there 
 
                     chrome.storage.sync.set({ 'classes': cloudArray });
 
@@ -329,7 +373,7 @@ function create_html(classData) {
     var weightsBlocks = document.getElementsByClassName("weight_block");
 
     chrome.storage.sync.get(function (result) {
-        console.log(result.weightsHidden);
+        //console.log(result.weightsHidden);
         if (result.weightsHidden == undefined) {
             for (let index = 0; index < weightsBlocks.length; index++) {
                 weightsBlocks[index].removeAttribute("hidden");
